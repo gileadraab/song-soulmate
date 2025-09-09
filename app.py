@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -25,11 +25,7 @@ def create_app():
     # Main route
     @app.route('/')
     def index():
-        return jsonify({
-            'message': 'Song Soulmate API',
-            'version': '1.0.0',
-            'status': 'running'
-        })
+        return render_template('index.html')
     
     # Error handlers
     @app.errorhandler(404)
