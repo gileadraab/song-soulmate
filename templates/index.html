@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SongSoulmate - Discover Your Musical Affinity</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <h1>🎵 SongSoulmate</h1>
+                <p>Discover your musical affinity with friends</p>
+            </div>
+            <nav class="nav">
+                <div id="user-info" class="user-info" style="display: none;">
+                    <img id="user-avatar" src="" alt="User Avatar" class="user-avatar">
+                    <span id="user-name"></span>
+                    <button id="logout-btn" class="btn btn-secondary">Logout</button>
+                </div>
+                <button id="login-btn" class="btn btn-primary">Connect with Spotify</button>
+            </nav>
+        </header>
+
+        <main class="main">
+            <section id="welcome-section" class="welcome-section">
+                <div class="hero">
+                    <h2>Find Your Musical Soulmate</h2>
+                    <p class="hero-description">
+                        Connect your Spotify account and discover how compatible your music taste is with friends. 
+                        Our algorithm analyzes your favorite artists, genres, and listening patterns to calculate your musical affinity.
+                    </p>
+                    <div class="features">
+                        <div class="feature">
+                            <div class="feature-icon">🎨</div>
+                            <h3>Artist Analysis</h3>
+                            <p>Compare your top artists and discover shared musical preferences</p>
+                        </div>
+                        <div class="feature">
+                            <div class="feature-icon">🎭</div>
+                            <h3>Genre Compatibility</h3>
+                            <p>Analyze genre overlap and musical style similarities</p>
+                        </div>
+                        <div class="feature">
+                            <div class="feature-icon">📊</div>
+                            <h3>Affinity Score</h3>
+                            <p>Get a comprehensive compatibility score with detailed breakdown</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="app-section" class="app-section" style="display: none;">
+                <div class="user-profile">
+                    <h2>Your Musical Profile</h2>
+                    <div id="user-stats" class="user-stats">
+                        <div class="stat">
+                            <span class="stat-label">Top Artists</span>
+                            <span id="top-artists-count" class="stat-value">-</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Favorite Genres</span>
+                            <span id="top-genres-count" class="stat-value">-</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Music Variety</span>
+                            <span id="music-variety" class="stat-value">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="affinity-calculator">
+                    <h2>Calculate Musical Affinity</h2>
+                    <form id="affinity-form" class="affinity-form">
+                        <div class="form-group">
+                            <label for="target-user">Friend's Spotify Username or Profile URL</label>
+                            <input type="text" id="target-user" name="target-user" placeholder="Enter username or paste Spotify profile URL" required>
+                            <small class="form-help">You can find this in your friend's Spotify profile</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-large">
+                            <span class="btn-text">Calculate Affinity</span>
+                            <div class="loading-spinner" style="display: none;"></div>
+                        </button>
+                    </form>
+                </div>
+
+                <div id="results-section" class="results-section" style="display: none;">
+                    <div class="results-header">
+                        <h2>Musical Affinity Results</h2>
+                        <button id="new-calculation-btn" class="btn btn-secondary">New Calculation</button>
+                    </div>
+                    
+                    <div class="affinity-score">
+                        <div class="score-circle">
+                            <svg class="score-progress" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="45" fill="none" stroke="#333" stroke-width="8"></circle>
+                                <circle id="score-progress-bar" cx="50" cy="50" r="45" fill="none" stroke="#1db954" stroke-width="8" stroke-dasharray="283" stroke-dashoffset="283"></circle>
+                            </svg>
+                            <div class="score-text">
+                                <span id="affinity-score" class="score-number">0</span>
+                                <span class="score-label">%</span>
+                            </div>
+                        </div>
+                        <div class="score-description">
+                            <h3 id="affinity-title">Musical Compatibility</h3>
+                            <p id="affinity-description">Analyzing your musical connection...</p>
+                        </div>
+                    </div>
+
+                    <div class="results-details">
+                        <div class="detail-card">
+                            <h3>🎤 Common Artists</h3>
+                            <div id="common-artists" class="artist-list"></div>
+                        </div>
+                        
+                        <div class="detail-card">
+                            <h3>🎭 Shared Genres</h3>
+                            <div id="common-genres" class="genre-list"></div>
+                        </div>
+                        
+                        <div class="detail-card">
+                            <h3>📈 Compatibility Breakdown</h3>
+                            <div id="compatibility-metrics" class="metrics-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>&copy; 2024 SongSoulmate. Made with ❤️ for music lovers.</p>
+            <p><small>Not affiliated with Spotify AB. Spotify is a trademark of Spotify AB.</small></p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
