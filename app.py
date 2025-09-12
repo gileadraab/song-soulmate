@@ -1,6 +1,7 @@
 import os
 import logging
 from flask import Flask, jsonify, render_template
+from flask_session import Session
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -13,9 +14,22 @@ def create_app():
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key')
     app.config['DEBUG'] = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
     
+    # Session configuration
+    app.config['SESSION_TYPE'] = 'filesystem'
+    app.config['SESSION_PERMANENT'] = False
+    app.config['SESSION_USE_SIGNER'] = True
+    app.config['SESSION_FILE_DIR'] = os.path.join(os.getcwd(), 'flask_session')
+    
+    # Initialize session
+    Session(app)
+    
     # Setup logging
     if not app.debug:
         logging.basicConfig(level=logging.INFO)
+    
+    # Register blueprints
+    from src.routes.auth import auth_bp
+    app.register_blueprint(auth_bp)
     
     # Health check endpoint
     @app.route('/health')
