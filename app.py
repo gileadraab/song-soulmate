@@ -29,7 +29,9 @@ def create_app():
     
     # Register blueprints
     from src.routes.auth import auth_bp
+    from src.routes.api import api_bp
     app.register_blueprint(auth_bp)
+    app.register_blueprint(api_bp)
     
     # Health check endpoint
     @app.route('/health')

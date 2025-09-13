@@ -18,75 +18,75 @@ def login():
     try:
         auth_url, state = spotify_service.get_auth_url()
         session['oauth_state'] = state
-        return redirect(auth_url)
+        return jsonify({'auth_url': auth_url})
     except Exception as e:
-        flash(f'Error initiating login: {str(e)}', 'error')
-        return redirect(url_for('index'))
+        return jsonify({'error': str(e)}), 500
 
 
-@auth_bp.route('/callback')
+@auth_bp.route('/callback', methods=['GET', 'POST'])
 def callback():
     """Handle Spotify OAuth callback."""
     try:
-        # Verify state parameter to prevent CSRF attacks
-        state = request.args.get('state')
-        if not state or state != session.get('oauth_state'):
-            flash('Invalid state parameter. Please try logging in again.', 'error')
-            return redirect(url_for('index'))
-        
-        # Check for authorization errors
-        error = request.args.get('error')
-        if error:
-            flash(f'Spotify authorization error: {error}', 'error')
-            return redirect(url_for('index'))
-        
-        # Get authorization code
-        code = request.args.get('code')
-        if not code:
-            flash('No authorization code received from Spotify.', 'error')
-            return redirect(url_for('index'))
-        
-        # Exchange code for access token
-        token_data = spotify_service.get_access_token(code)
-        
-        # Store token data in session
-        session['spotify_token'] = {
-            'access_token': token_data['access_token'],
-            'refresh_token': token_data.get('refresh_token'),
-            'expires_at': token_data['expires_at'].isoformat() if token_data.get('expires_at') else None,
-            'token_type': token_data.get('token_type', 'Bearer')
-        }
-        
-        # Get user profile to store basic info
-        user_profile = spotify_service.get_user_profile(token_data['access_token'])
-        session['user_profile'] = {
-            'id': user_profile['id'],
-            'display_name': user_profile.get('display_name', 'Unknown User'),
-            'email': user_profile.get('email'),
-            'images': user_profile.get('images', [])
-        }
-        
-        # Clear oauth state
-        session.pop('oauth_state', None)
-        
-        flash(f'Successfully logged in as {user_profile.get("display_name", "Unknown User")}!', 'success')
-        return redirect(url_for('index'))
+        if request.method == 'GET':
+            # Handle direct callback from Spotify (redirect to frontend)
+            error = request.args.get('error')
+            if error:
+                return redirect(f'/?error={error}')
+            
+            code = request.args.get('code')
+            if not code:
+                return redirect('/?error=no_code')
+                
+            return redirect(f'/?code={code}')
+            
+        elif request.method == 'POST':
+            # Handle AJAX request from frontend
+            data = request.get_json()
+            if not data or 'code' not in data:
+                return jsonify({'error': 'No authorization code provided'}), 400
+            
+            code = data['code']
+            
+            # Exchange code for access token
+            token_data = spotify_service.get_access_token(code)
+            
+            # Store token data in session
+            session['spotify_token'] = {
+                'access_token': token_data['access_token'],
+                'refresh_token': token_data.get('refresh_token'),
+                'expires_at': token_data['expires_at'].isoformat() if token_data.get('expires_at') else None,
+                'token_type': token_data.get('token_type', 'Bearer')
+            }
+            
+            # Get user profile to store basic info
+            user_profile = spotify_service.get_user_profile(token_data['access_token'])
+            session['user_profile'] = {
+                'id': user_profile['id'],
+                'display_name': user_profile.get('display_name', 'Unknown User'),
+                'email': user_profile.get('email'),
+                'images': user_profile.get('images', [])
+            }
+            
+            # Clear oauth state
+            session.pop('oauth_state', None)
+            
+            return jsonify(session['user_profile'])
         
     except Exception as e:
-        flash(f'Error during authentication: {str(e)}', 'error')
-        return redirect(url_for('index'))
+        if request.method == 'POST':
+            return jsonify({'error': str(e)}), 500
+        else:
+            return redirect(f'/?error=auth_failed')
 
 
-@auth_bp.route('/logout')
+@auth_bp.route('/logout', methods=['POST'])
 def logout():
     """Log out the user by clearing session data."""
     try:
         session.clear()
-        flash('Successfully logged out!', 'success')
-        return redirect(url_for('index'))
+        return jsonify({'message': 'Successfully logged out'})
     except Exception as e:
-        flash(f'Error during logout: {str(e)}', 'error')
-        return redirect(url_for('index'))
+        return jsonify({'error': str(e)}), 500
 
 
 @auth_bp.route('/status')
