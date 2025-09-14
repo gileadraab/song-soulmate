@@ -1,0 +1,14 @@
+name: Continuous Integration
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v5
+
+      - name: Python flake8 Lint
+        uses: py-actions/flake8@v2.3.0
+
+      - name: Black Code Formatter
+        uses: lgeiger/black-action@v1.0.1
