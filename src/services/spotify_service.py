@@ -30,17 +30,17 @@ class SpotifyService:
                 parameter
         """
         if scopes is None:
-            scopes = ['user-top-read', 'user-read-private']
+            scopes = ["user-top-read", "user-read-private"]
 
         state = secrets.token_urlsafe(16)
 
         params = {
-            'client_id': self.client_id,
-            'response_type': 'code',
-            'redirect_uri': self.redirect_uri,
-            'scope': ' '.join(scopes),
-            'state': state,
-            'show_dialog': 'true'
+            "client_id": self.client_id,
+            "response_type": "code",
+            "redirect_uri": self.redirect_uri,
+            "scope": " ".join(scopes),
+            "state": state,
+            "show_dialog": "true",
         }
 
         auth_url = f"{self.auth_url}?{urlencode(params)}"
@@ -57,18 +57,18 @@ class SpotifyService:
             dict: Token response with access_token, refresh_token, expires_in
         """
         auth_string = f"{self.client_id}:{self.client_secret}"
-        auth_bytes = auth_string.encode('utf-8')
-        auth_base64 = base64.b64encode(auth_bytes).decode('utf-8')
+        auth_bytes = auth_string.encode("utf-8")
+        auth_base64 = base64.b64encode(auth_bytes).decode("utf-8")
 
         headers = {
-            'Authorization': f'Basic {auth_base64}',
-            'Content-Type': 'application/x-www-form-urlencoded'
+            "Authorization": f"Basic {auth_base64}",
+            "Content-Type": "application/x-www-form-urlencoded",
         }
 
         data = {
-            'grant_type': 'authorization_code',
-            'code': authorization_code,
-            'redirect_uri': self.redirect_uri
+            "grant_type": "authorization_code",
+            "code": authorization_code,
+            "redirect_uri": self.redirect_uri,
         }
 
         response = requests.post(self.token_url, headers=headers, data=data)
@@ -76,10 +76,8 @@ class SpotifyService:
         if response.status_code == 200:
             token_data = response.json()
             # Add expiration timestamp
-            expires_in = token_data['expires_in']
-            token_data['expires_at'] = datetime.now() + timedelta(
-                seconds=expires_in
-            )
+            expires_in = token_data["expires_in"]
+            token_data["expires_at"] = datetime.now() + timedelta(seconds=expires_in)
             return token_data
         else:
             error_msg = (
@@ -99,28 +97,23 @@ class SpotifyService:
             dict: New token response with access_token and expires_in
         """
         auth_string = f"{self.client_id}:{self.client_secret}"
-        auth_bytes = auth_string.encode('utf-8')
-        auth_base64 = base64.b64encode(auth_bytes).decode('utf-8')
+        auth_bytes = auth_string.encode("utf-8")
+        auth_base64 = base64.b64encode(auth_bytes).decode("utf-8")
 
         headers = {
-            'Authorization': f'Basic {auth_base64}',
-            'Content-Type': 'application/x-www-form-urlencoded'
+            "Authorization": f"Basic {auth_base64}",
+            "Content-Type": "application/x-www-form-urlencoded",
         }
 
-        data = {
-            'grant_type': 'refresh_token',
-            'refresh_token': refresh_token
-        }
+        data = {"grant_type": "refresh_token", "refresh_token": refresh_token}
 
         response = requests.post(self.token_url, headers=headers, data=data)
 
         if response.status_code == 200:
             token_data = response.json()
             # Add expiration timestamp
-            expires_in = token_data['expires_in']
-            token_data['expires_at'] = datetime.now() + timedelta(
-                seconds=expires_in
-            )
+            expires_in = token_data["expires_in"]
+            token_data["expires_at"] = datetime.now() + timedelta(seconds=expires_in)
             return token_data
         else:
             error_msg = (
@@ -139,10 +132,10 @@ class SpotifyService:
         Returns:
             bool: True if token is valid, False if expired
         """
-        if not token_data or 'expires_at' not in token_data:
+        if not token_data or "expires_at" not in token_data:
             return False
 
-        expires_at = token_data['expires_at']
+        expires_at = token_data["expires_at"]
         if isinstance(expires_at, str):
             expires_at = datetime.fromisoformat(expires_at)
 
@@ -159,9 +152,7 @@ class SpotifyService:
         Returns:
             bool: True if token is valid, False otherwise
         """
-        headers = {
-            'Authorization': f'Bearer {access_token}'
-        }
+        headers = {"Authorization": f"Bearer {access_token}"}
 
         response = requests.get(f"{self.api_base_url}/me", headers=headers)
         return response.status_code == 200
@@ -176,9 +167,7 @@ class SpotifyService:
         Returns:
             dict: User profile data
         """
-        headers = {
-            'Authorization': f'Bearer {access_token}'
-        }
+        headers = {"Authorization": f"Bearer {access_token}"}
 
         response = requests.get(f"{self.api_base_url}/me", headers=headers)
 
@@ -191,9 +180,7 @@ class SpotifyService:
             )
             raise Exception(error_msg)
 
-    def get_top_artists(
-        self, access_token, limit=20, time_range='medium_term'
-    ):
+    def get_top_artists(self, access_token, limit=20, time_range="medium_term"):
         """
         Get user's top artists from Spotify.
 
@@ -206,19 +193,15 @@ class SpotifyService:
         Returns:
             dict: Top artists data from Spotify API
         """
-        headers = {
-            'Authorization': f'Bearer {access_token}'
-        }
+        headers = {"Authorization": f"Bearer {access_token}"}
 
         params = {
-            'limit': min(limit, 50),  # Spotify API limit is 50
-            'time_range': time_range
+            "limit": min(limit, 50),  # Spotify API limit is 50
+            "time_range": time_range,
         }
 
         response = requests.get(
-            f"{self.api_base_url}/me/top/artists",
-            headers=headers,
-            params=params
+            f"{self.api_base_url}/me/top/artists", headers=headers, params=params
         )
 
         if response.status_code == 200:
