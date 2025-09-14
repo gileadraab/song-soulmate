@@ -9,6 +9,8 @@ jobs:
 
       - name: Python flake8 Lint
         uses: py-actions/flake8@v2.3.0
+        with:
+          args: "--exclude=venv"
 
       - name: Black Code Formatter
         uses: lgeiger/black-action@v1.0.1
