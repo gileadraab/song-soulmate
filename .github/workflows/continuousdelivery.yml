@@ -1,0 +1,19 @@
+name: Continuous Delivery
+on:
+  push:
+    branches:
+      - main #or any other branch
+jobs:
+  deliver:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v5
+
+      - name: Simulating continuous delivery
+        uses: actions/upload-artifact@v4
+        with:
+          name: zipproject.zip
+          path: |
+            '**.py'
+            README.md
