@@ -15,7 +15,7 @@ jobs:
         with:
           name: zipproject.zip
           path: |
-            '**.py'
+            **.py
             README.md
   deploy:
     runs-on: ubuntu-latest
