@@ -1,5 +1,5 @@
 import os
-from flask import Blueprint, request, redirect, url_for, session, flash, jsonify
+from flask import Blueprint, request, redirect, session, jsonify
 from src.services.spotify_service import SpotifyService
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -32,51 +32,58 @@ def callback():
             error = request.args.get('error')
             if error:
                 return redirect(f'/?error={error}')
-            
+
             code = request.args.get('code')
             if not code:
                 return redirect('/?error=no_code')
-                
+
             return redirect(f'/?code={code}')
-            
+
         elif request.method == 'POST':
             # Handle AJAX request from frontend
             data = request.get_json()
             if not data or 'code' not in data:
-                return jsonify({'error': 'No authorization code provided'}), 400
-            
+                error_msg = 'No authorization code provided'
+                return jsonify({'error': error_msg}), 400
+
             code = data['code']
-            
+
             # Exchange code for access token
             token_data = spotify_service.get_access_token(code)
-            
+
             # Store token data in session
             session['spotify_token'] = {
                 'access_token': token_data['access_token'],
                 'refresh_token': token_data.get('refresh_token'),
-                'expires_at': token_data['expires_at'].isoformat() if token_data.get('expires_at') else None,
+                'expires_at': (
+                    token_data['expires_at'].isoformat()
+                    if token_data.get('expires_at') else None
+                ),
                 'token_type': token_data.get('token_type', 'Bearer')
             }
-            
+
             # Get user profile to store basic info
-            user_profile = spotify_service.get_user_profile(token_data['access_token'])
+            access_token = token_data['access_token']
+            user_profile = spotify_service.get_user_profile(access_token)
             session['user_profile'] = {
                 'id': user_profile['id'],
-                'display_name': user_profile.get('display_name', 'Unknown User'),
+                'display_name': user_profile.get(
+                    'display_name', 'Unknown User'
+                ),
                 'email': user_profile.get('email'),
                 'images': user_profile.get('images', [])
             }
-            
+
             # Clear oauth state
             session.pop('oauth_state', None)
-            
+
             return jsonify(session['user_profile'])
-        
+
     except Exception as e:
         if request.method == 'POST':
             return jsonify({'error': str(e)}), 500
         else:
-            return redirect(f'/?error=auth_failed')
+            return redirect('/?error=auth_failed')
 
 
 @auth_bp.route('/logout', methods=['POST'])
@@ -95,7 +102,7 @@ def status():
     try:
         if 'spotify_token' in session and 'user_profile' in session:
             token_data = session['spotify_token']
-            
+
             # Check if token is still valid
             if spotify_service.is_token_valid(token_data):
                 return jsonify({
@@ -107,10 +114,15 @@ def status():
                 # Try to refresh the token
                 if token_data.get('refresh_token'):
                     try:
-                        new_token_data = spotify_service.refresh_access_token(token_data['refresh_token'])
+                        refresh_token = token_data['refresh_token']
+                        new_token_data = spotify_service.refresh_access_token(
+                            refresh_token
+                        )
                         session['spotify_token'].update({
                             'access_token': new_token_data['access_token'],
-                            'expires_at': new_token_data['expires_at'].isoformat()
+                            'expires_at': (
+                                new_token_data['expires_at'].isoformat()
+                            )
                         })
                         return jsonify({
                             'authenticated': True,
@@ -132,7 +144,9 @@ def status():
                     return jsonify({
                         'authenticated': False,
                         'token_valid': False,
-                        'message': 'Token expired and no refresh token available'
+                        'message': (
+                            'Token expired and no refresh token available'
+                        )
                     })
         else:
             return jsonify({
@@ -151,17 +165,20 @@ def get_valid_access_token():
     """Helper function to get a valid access token from session."""
     if 'spotify_token' not in session:
         return None
-    
+
     token_data = session['spotify_token']
-    
+
     # Check if token is still valid
     if spotify_service.is_token_valid(token_data):
         return token_data['access_token']
-    
+
     # Try to refresh the token
     if token_data.get('refresh_token'):
         try:
-            new_token_data = spotify_service.refresh_access_token(token_data['refresh_token'])
+            refresh_token = token_data['refresh_token']
+            new_token_data = spotify_service.refresh_access_token(
+                refresh_token
+            )
             session['spotify_token'].update({
                 'access_token': new_token_data['access_token'],
                 'expires_at': new_token_data['expires_at'].isoformat()
@@ -171,5 +188,5 @@ def get_valid_access_token():
             # Refresh failed, clear session
             session.clear()
             return None
-    
+
     return None

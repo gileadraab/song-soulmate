@@ -9,6 +9,7 @@ from flask import Blueprint
 # Create blueprint for main routes
 main = Blueprint('main', __name__)
 
+
 @main.route('/api/status')
 def api_status():
     """API status endpoint"""
