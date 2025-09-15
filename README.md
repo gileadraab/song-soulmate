@@ -36,3 +36,4 @@ SPOTIFY_CLIENT_SECRET=your_client_secret
 SPOTIFY_REDIRECT_URI=http://localhost:5000/auth/callback
 SECRET_KEY=your_secret_key
 ```
+# Docker Support
