@@ -53,8 +53,17 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Test Docker image
+        if: github.event_name != 'pull_request'
         run: |
           docker run --rm -d -p 5000:5000 --name test-container ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          sleep 10
+          curl -f http://localhost:5000/health || exit 1
+          docker stop test-container
+
+      - name: Test local Docker image (PR only)
+        if: github.event_name == 'pull_request'
+        run: |
+          docker run --rm -d -p 5000:5000 --name test-container song-soulmate:latest
           sleep 10
           curl -f http://localhost:5000/health || exit 1
           docker stop test-container
