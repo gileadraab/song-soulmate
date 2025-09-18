@@ -10,12 +10,15 @@ from flask_session import Session
 load_dotenv()
 
 
-def create_app():
+def create_app(test_config=None):
     app = Flask(__name__)
 
     # Configuration
-    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret-key")
-    app.config["DEBUG"] = os.getenv("FLASK_DEBUG", "True").lower() == "true"
+    if test_config is None:
+        app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret-key")
+        app.config["DEBUG"] = os.getenv("FLASK_DEBUG", "True").lower() == "true"
+    else:
+        app.config.update(test_config)
 
     # Session configuration
     app.config["SESSION_TYPE"] = "filesystem"
