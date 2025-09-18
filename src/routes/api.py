@@ -1,8 +1,10 @@
 import os
-from flask import Blueprint, request, session, jsonify
-from src.services.spotify_service import SpotifyService
-from src.services.affinity_service import AffinityService
+
+from flask import Blueprint, jsonify, request, session
+
 from src.routes.auth import get_valid_access_token
+from src.services.affinity_service import AffinityService
+from src.services.spotify_service import SpotifyService
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
 

@@ -1,8 +1,9 @@
-import requests
 import base64
 import secrets
-from urllib.parse import urlencode
 from datetime import datetime, timedelta
+from urllib.parse import urlencode
+
+import requests
 
 
 class SpotifyService:
