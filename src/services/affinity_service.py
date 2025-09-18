@@ -1,6 +1,6 @@
 import math
 from collections import Counter
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any
 
 
 class AffinityService:
@@ -240,13 +240,17 @@ class AffinityService:
             description = "You share some interesting musical preferences."
         elif score >= 40:
             compatibility = "moderate musical compatibility"
-            description = "You have some overlapping tastes, but also unique preferences."
+            description = (
+                "You have some overlapping tastes, but also unique preferences."
+            )
         elif score >= 25:
             compatibility = "limited musical compatibility"
             description = "Your musical tastes are quite different, but that's not bad!"
         else:
             compatibility = "very different musical preferences"
-            description = "You each have unique musical styles - variety is the spice of life!"
+            description = (
+                "You each have unique musical styles - variety is the spice of life!"
+            )
 
         common_text = ""
         if common_count > 0:
