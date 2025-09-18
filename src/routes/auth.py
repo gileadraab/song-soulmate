@@ -78,6 +78,10 @@ def callback():
 
             return jsonify(session["user_profile"])
 
+        else:
+            # Handle unsupported HTTP methods
+            return jsonify({"error": "Method not allowed"}), 405
+
     except Exception as e:
         if request.method == "POST":
             return jsonify({"error": str(e)}), 500
