@@ -1,5 +1,7 @@
 import os
-from flask import Blueprint, request, redirect, session, jsonify
+
+from flask import Blueprint, jsonify, redirect, request, session
+
 from src.services.spotify_service import SpotifyService
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")

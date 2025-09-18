@@ -1,8 +1,10 @@
-import os
 import logging
-from flask import Flask, jsonify, render_template
-from flask_session import Session
+import os
+
 from dotenv import load_dotenv
+from flask import Flask, jsonify, render_template
+
+from flask_session import Session
 
 # Load environment variables
 load_dotenv()
@@ -29,8 +31,8 @@ def create_app():
         logging.basicConfig(level=logging.INFO)
 
     # Register blueprints
-    from src.routes.auth import auth_bp
     from src.routes.api import api_bp
+    from src.routes.auth import auth_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(api_bp)
