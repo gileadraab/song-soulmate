@@ -4,7 +4,7 @@ import os
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template
 
-from flask_session import Session
+# from flask_session import Session
 
 # Load environment variables
 load_dotenv()
@@ -20,14 +20,8 @@ def create_app(test_config=None):
     else:
         app.config.update(test_config)
 
-    # Session configuration
-    app.config["SESSION_TYPE"] = "filesystem"
-    app.config["SESSION_PERMANENT"] = False
-    app.config["SESSION_USE_SIGNER"] = True
-    app.config["SESSION_FILE_DIR"] = os.path.join(os.getcwd(), "flask_session")
-
-    # Initialize session
-    Session(app)
+    # Use built-in Flask sessions instead of flask-session
+    # This avoids the bytes/string type error with flask-session library
 
     # Setup logging
     if not app.debug:
