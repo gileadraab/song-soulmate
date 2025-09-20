@@ -1,9 +1,12 @@
 import base64
+import hashlib
 import secrets
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
 import requests
+
+from src.utils.cache import cache_spotify_response
 
 
 class SpotifyService:
@@ -158,6 +161,7 @@ class SpotifyService:
         response = requests.get(f"{self.api_base_url}/me", headers=headers)
         return response.status_code == 200
 
+    @cache_spotify_response(expire=1800)  # Cache for 30 minutes
     def get_user_profile(self, access_token):
         """
         Get current user's profile information.
@@ -181,6 +185,7 @@ class SpotifyService:
             )
             raise Exception(error_msg)
 
+    @cache_spotify_response(expire=900)  # Cache for 15 minutes
     def get_top_artists(self, access_token, limit=20, time_range="medium_term"):
         """
         Get user's top artists from Spotify.
@@ -213,3 +218,34 @@ class SpotifyService:
                 f"{response.text}"
             )
             raise Exception(error_msg)
+
+    def get_user_id_from_token(self, access_token):
+        """
+        Extract user ID from access token for cache key generation.
+
+        Args:
+            access_token (str): Valid Spotify access token
+
+        Returns:
+            str: User ID hash for cache key
+        """
+        try:
+            user_profile = self.get_user_profile(access_token)
+            user_id = user_profile.get("id", "unknown")
+            # Create hash of user ID for privacy
+            return hashlib.md5(user_id.encode()).hexdigest()[:8]
+        except Exception:
+            # Fallback to token hash if profile fetch fails
+            return hashlib.md5(access_token.encode()).hexdigest()[:8]
+
+    def invalidate_user_cache(self, access_token):
+        """
+        Invalidate cache for a specific user when their data changes.
+
+        Args:
+            access_token (str): User's access token
+        """
+        from src.utils.cache import invalidate_user_cache
+
+        user_id = self.get_user_id_from_token(access_token)
+        invalidate_user_cache(user_id)
