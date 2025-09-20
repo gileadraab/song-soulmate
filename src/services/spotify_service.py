@@ -238,6 +238,167 @@ class SpotifyService:
             # Fallback to token hash if profile fetch fails
             return hashlib.md5(access_token.encode()).hexdigest()[:8]
 
+    def extract_user_id_from_url(self, spotify_url):
+        """
+        Extract user ID from Spotify profile URL.
+
+        Args:
+            spotify_url (str): Spotify profile URL or user ID
+
+        Returns:
+            str: Extracted user ID or None if invalid
+        """
+        if not spotify_url:
+            return None
+
+        # If it's already just a user ID, return it
+        if not spotify_url.startswith("http"):
+            return spotify_url.strip()
+
+        # Parse Spotify URL formats:
+        # https://open.spotify.com/user/USERNAME
+        # https://open.spotify.com/user/USERNAME?si=...
+        if "open.spotify.com/user/" in spotify_url:
+            try:
+                # Extract user ID from URL
+                parts = spotify_url.split("/user/")[1]
+                user_id = parts.split("?")[0]  # Remove query parameters
+                return user_id.strip()
+            except (IndexError, AttributeError):
+                return None
+
+        return None
+
+    @cache_spotify_response(expire=1800)  # Cache for 30 minutes
+    def get_user_public_playlists(self, user_id, access_token, limit=20):
+        """
+        Get user's public playlists to check if profile is accessible.
+
+        Args:
+            user_id (str): Spotify user ID
+            access_token (str): Valid Spotify access token
+            limit (int): Number of playlists to retrieve
+
+        Returns:
+            dict: User's public playlists or None if private/not found
+        """
+        headers = {"Authorization": f"Bearer {access_token}"}
+
+        params = {"limit": min(limit, 50)}
+
+        response = requests.get(
+            f"{self.api_base_url}/users/{user_id}/playlists",
+            headers=headers,
+            params=params,
+        )
+
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 404:
+            return None  # User not found
+        elif response.status_code == 403:
+            return None  # Private profile
+        else:
+            # Other errors
+            return None
+
+    @cache_spotify_response(expire=1800)  # Cache for 30 minutes
+    def get_user_profile_by_id(self, user_id, access_token):
+        """
+        Get public user profile by user ID.
+
+        Args:
+            user_id (str): Spotify user ID
+            access_token (str): Valid Spotify access token
+
+        Returns:
+            dict: User profile data or None if not accessible
+        """
+        headers = {"Authorization": f"Bearer {access_token}"}
+
+        response = requests.get(f"{self.api_base_url}/users/{user_id}", headers=headers)
+
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 404:
+            return None  # User not found
+        else:
+            return None  # Other errors (private, etc.)
+
+    def get_user_top_tracks_from_playlists(self, user_id, access_token, limit=50):
+        """
+        Try to analyze user's music taste from their public playlists.
+        This is a workaround since we can't directly access other users' top artists.
+
+        Args:
+            user_id (str): Spotify user ID
+            access_token (str): Valid Spotify access token
+            limit (int): Number of tracks to analyze
+
+        Returns:
+            list: List of artist data extracted from public playlists
+        """
+        try:
+            # Get user's public playlists
+            playlists_response = self.get_user_public_playlists(user_id, access_token)
+            if not playlists_response or not playlists_response.get("items"):
+                return []
+
+            headers = {"Authorization": f"Bearer {access_token}"}
+            artists_data = {}
+            track_count = 0
+
+            # Analyze tracks from public playlists
+            for playlist in playlists_response["items"][:5]:  # Check first 5 playlists
+                if track_count >= limit:
+                    break
+
+                playlist_id = playlist["id"]
+                tracks_response = requests.get(
+                    f"{self.api_base_url}/playlists/{playlist_id}/tracks",
+                    headers=headers,
+                    params={"limit": min(20, limit - track_count)},
+                )
+
+                if tracks_response.status_code == 200:
+                    tracks_data = tracks_response.json()
+                    for item in tracks_data.get("items", []):
+                        if track_count >= limit:
+                            break
+
+                        track = item.get("track")
+                        if track and track.get("artists"):
+                            for artist in track["artists"]:
+                                artist_id = artist["id"]
+                                if artist_id not in artists_data:
+                                    # Get detailed artist info
+                                    artist_response = requests.get(
+                                        f"{self.api_base_url}/artists/{artist_id}",
+                                        headers=headers,
+                                    )
+                                    if artist_response.status_code == 200:
+                                        artist_data = artist_response.json()
+                                        artists_data[artist_id] = {
+                                            "id": artist_data["id"],
+                                            "name": artist_data["name"],
+                                            "popularity": artist_data.get(
+                                                "popularity", 0
+                                            ),
+                                            "genres": artist_data.get("genres", []),
+                                        }
+
+                        track_count += 1
+
+            # Convert to list and sort by popularity
+            artists_list = list(artists_data.values())
+            artists_list.sort(key=lambda x: x["popularity"], reverse=True)
+
+            return artists_list[:20]  # Return top 20 artists by popularity
+
+        except Exception as e:
+            print(f"Error analyzing user playlists: {e}")
+            return []
+
     def invalidate_user_cache(self, access_token):
         """
         Invalidate cache for a specific user when their data changes.
