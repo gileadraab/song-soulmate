@@ -3,6 +3,8 @@ import os
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 # from flask_session import Session
 
@@ -27,6 +29,16 @@ def create_app(test_config=None):
     if not app.debug:
         logging.basicConfig(level=logging.INFO)
 
+    # Initialize rate limiting
+    limiter = Limiter(
+        key_func=get_remote_address,
+        app=app,
+        default_limits=["200 per day", "50 per hour"],
+        storage_uri=os.getenv("REDIS_URL", "memory://"),
+        storage_options={"socket_connect_timeout": 30},
+        strategy="fixed-window",
+    )
+
     # Register blueprints
     from src.routes.api import api_bp
     from src.routes.auth import auth_bp
@@ -34,10 +46,28 @@ def create_app(test_config=None):
     app.register_blueprint(auth_bp)
     app.register_blueprint(api_bp)
 
-    # Health check endpoint
+    # Apply rate limiting to API endpoints
+    limiter.limit("30 per minute")(api_bp)
+    limiter.limit("10 per minute")(auth_bp)
+
+    # Health check endpoint (exempt from rate limiting)
     @app.route("/health")
+    @limiter.exempt
     def health_check():
-        return jsonify({"status": "healthy", "service": "Song Soulmate"})
+        from src.utils.cache import cache_health_check
+
+        cache_status = cache_health_check()
+        return jsonify(
+            {"status": "healthy", "service": "Song Soulmate", "cache": cache_status}
+        )
+
+    # Cache status endpoint
+    @app.route("/cache/status")
+    @limiter.limit("5 per minute")
+    def cache_status():
+        from src.utils.cache import cache_manager
+
+        return jsonify(cache_manager.get_cache_info())
 
     # Main route
     @app.route("/")
@@ -52,6 +82,19 @@ def create_app(test_config=None):
     @app.errorhandler(500)
     def internal_error(error):
         return jsonify({"error": "Internal server error"}), 500
+
+    @app.errorhandler(429)
+    def rate_limit_exceeded(error):
+        return (
+            jsonify(
+                {
+                    "error": "Rate limit exceeded",
+                    "message": "Too many requests. Please try again later.",
+                    "retry_after": error.retry_after,
+                }
+            ),
+            429,
+        )
 
     return app
 

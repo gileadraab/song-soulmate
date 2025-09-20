@@ -5,6 +5,7 @@ from flask import Blueprint, jsonify, request, session
 from src.routes.auth import get_valid_access_token
 from src.services.affinity_service import AffinityService
 from src.services.spotify_service import SpotifyService
+from src.utils.cache import cache_affinity_result, cache_user_stats
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
 
@@ -41,20 +42,28 @@ def get_user_stats():
         if not access_token:
             return jsonify({"error": "Not authenticated"}), 401
 
-        # Get user's top artists to calculate stats
-        top_artists_response = spotify_service.get_top_artists(access_token, limit=50)
-        top_artists = top_artists_response.get("items", [])
-
-        # Calculate statistics
-        stats = {
-            "top_artists_count": len(top_artists),
-            "top_genres_count": len(get_unique_genres(top_artists)),
-            "music_variety": calculate_music_variety(top_artists),
-        }
-
+        # Use cached version of stats calculation
+        stats = _get_cached_user_stats(access_token)
         return jsonify(stats)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@cache_user_stats(expire=900)  # Cache for 15 minutes
+def _get_cached_user_stats(access_token):
+    """Cached helper function to calculate user statistics."""
+    # Get user's top artists to calculate stats
+    top_artists_response = spotify_service.get_top_artists(access_token, limit=50)
+    top_artists = top_artists_response.get("items", [])
+
+    # Calculate statistics
+    stats = {
+        "top_artists_count": len(top_artists),
+        "top_genres_count": len(get_unique_genres(top_artists)),
+        "music_variety": calculate_music_variety(top_artists),
+    }
+
+    return stats
 
 
 @api_bp.route("/calculate-affinity", methods=["POST"])
@@ -73,22 +82,36 @@ def calculate_affinity():
         if not target_user:
             return jsonify({"error": "Target user cannot be empty"}), 400
 
+        # Use cached affinity calculation
+        affinity_results = _get_cached_affinity_calculation(access_token, target_user)
+
+        if "error" in affinity_results:
+            if affinity_results["error"].startswith("Unable to find music data"):
+                return jsonify(affinity_results), 404
+            else:
+                return jsonify(affinity_results), 400
+
+        return jsonify(affinity_results)
+
+    except Exception as e:
+        return jsonify({"error": f"Failed to calculate affinity: {str(e)}"}), 500
+
+
+@cache_affinity_result(expire=3600)  # Cache for 1 hour
+def _get_cached_affinity_calculation(access_token, target_user):
+    """Cached helper function to calculate affinity between users."""
+    try:
         # Get current user's top artists
         current_user_response = spotify_service.get_top_artists(access_token, limit=50)
         current_user_artists = current_user_response.get("items", [])
 
         if not current_user_artists:
-            return (
-                jsonify(
-                    {
-                        "error": (
-                            "Unable to fetch your music data. Please make sure you "
-                            "have listening history on Spotify."
-                        )
-                    }
-                ),
-                400,
-            )
+            return {
+                "error": (
+                    "Unable to fetch your music data. Please make sure you "
+                    "have listening history on Spotify."
+                )
+            }
 
         # For demo purposes, we'll use mock data for the target user
         # In a real implementation, this would search for the target user
@@ -96,17 +119,12 @@ def calculate_affinity():
         target_user_artists = get_mock_user_artists(target_user)
 
         if not target_user_artists:
-            return (
-                jsonify(
-                    {
-                        "error": (
-                            f"Unable to find music data for user '{target_user}'. "
-                            "They may have a private profile or don't exist."
-                        )
-                    }
-                ),
-                404,
-            )
+            return {
+                "error": (
+                    f"Unable to find music data for user '{target_user}'. "
+                    "They may have a private profile or don't exist."
+                )
+            }
 
         # Calculate affinity using the affinity service
         affinity_results = affinity_service.calculate_affinity(
@@ -116,10 +134,10 @@ def calculate_affinity():
         # Add target user info to the results
         affinity_results["target_user"] = target_user
 
-        return jsonify(affinity_results)
+        return affinity_results
 
     except Exception as e:
-        return jsonify({"error": f"Failed to calculate affinity: {str(e)}"}), 500
+        return {"error": f"Failed to calculate affinity: {str(e)}"}
 
 
 def get_unique_genres(artists):
@@ -315,3 +333,37 @@ def get_mock_user_artists(username):
 
     # Return mock data if user exists, otherwise None
     return mock_users.get(username.lower())
+
+
+@api_bp.route("/cache/clear", methods=["POST"])
+def clear_user_cache():
+    """Clear cache for the current user."""
+    try:
+        access_token = get_valid_access_token()
+        if not access_token:
+            return jsonify({"error": "Not authenticated"}), 401
+
+        # Invalidate user-specific cache
+        spotify_service.invalidate_user_cache(access_token)
+
+        return jsonify({"message": "User cache cleared successfully"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/cache/warm", methods=["POST"])
+def warm_cache():
+    """Pre-warm cache with user data."""
+    try:
+        access_token = get_valid_access_token()
+        if not access_token:
+            return jsonify({"error": "Not authenticated"}), 401
+
+        # Pre-fetch and cache user data
+        spotify_service.get_user_profile(access_token)
+        spotify_service.get_top_artists(access_token, limit=50)
+        _get_cached_user_stats(access_token)
+
+        return jsonify({"message": "Cache warmed successfully"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
