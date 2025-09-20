@@ -113,18 +113,30 @@ def _get_cached_affinity_calculation(access_token, target_user):
                 )
             }
 
-        # For demo purposes, we'll use mock data for the target user
-        # In a real implementation, this would search for the target user
-        # and fetch their top artists (if their profile is public)
-        target_user_artists = get_mock_user_artists(target_user)
+        # Get target user artists (supports both real Spotify URLs and mock users)
+        target_user_artists = get_target_user_artists(target_user, access_token)
 
         if not target_user_artists:
-            return {
-                "error": (
-                    f"Unable to find music data for user '{target_user}'. "
-                    "They may have a private profile or don't exist."
-                )
-            }
+            # Check if it was a URL to provide a more specific error message
+            user_id = spotify_service.extract_user_id_from_url(target_user)
+            if user_id and user_id != target_user:
+                return {
+                    "error": (
+                        f"Unable to find public music data for Spotify user "
+                        f"'{user_id}'. Their profile may be private, they may not "
+                        "have public playlists, or the user doesn't exist. "
+                        "Try using demo users: john, sarah, mike, or alex."
+                    )
+                }
+            else:
+                return {
+                    "error": (
+                        f"Unable to find music data for user '{target_user}'. "
+                        "Try using a Spotify profile URL "
+                        "(https://open.spotify.com/user/USERNAME) or demo users: "
+                        "john, sarah, mike, or alex."
+                    )
+                }
 
         # Calculate affinity using the affinity service
         affinity_results = affinity_service.calculate_affinity(
@@ -169,12 +181,44 @@ def calculate_music_variety(artists):
         return "Very Low"
 
 
-def get_mock_user_artists(username):
+def get_target_user_artists(target_user, access_token):
     """
-    Get mock artist data for a target user for demo purposes.
-    In a real implementation, this would fetch actual user data from Spotify API.
+    Get artist data for a target user. Supports both mock users and real
+    Spotify URLs/IDs.
+
+    Args:
+        target_user (str): Username, Spotify URL, or user ID
+        access_token (str): Valid Spotify access token
+
+    Returns:
+        list: List of artist data or None if user not found
     """
-    # Mock data based on different user types for demo
+    # First try to extract user ID from URL if it's a Spotify URL
+    user_id = spotify_service.extract_user_id_from_url(target_user)
+
+    if user_id and user_id != target_user:
+        # It was a URL and we extracted the ID, try to get real data
+        try:
+            # Check if user profile exists and is public
+            user_profile = spotify_service.get_user_profile_by_id(user_id, access_token)
+            if user_profile:
+                # Try to get artist data from their public playlists
+                artists = spotify_service.get_user_top_tracks_from_playlists(
+                    user_id, access_token
+                )
+                if artists:
+                    return artists
+                else:
+                    # No public playlists or no tracks found
+                    return None
+            else:
+                # User profile is private or doesn't exist
+                return None
+        except Exception as e:
+            print(f"Error fetching real user data: {e}")
+            return None
+
+    # If it wasn't a URL or real data fetch failed, try mock data
     mock_users = {
         "john": [
             {
@@ -332,7 +376,7 @@ def get_mock_user_artists(username):
     }
 
     # Return mock data if user exists, otherwise None
-    return mock_users.get(username.lower())
+    return mock_users.get(target_user.lower())
 
 
 @api_bp.route("/cache/clear", methods=["POST"])
