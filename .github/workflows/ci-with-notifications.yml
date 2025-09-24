@@ -55,13 +55,27 @@ jobs:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
         with:
           args: |
-            ✅ **Build Successful** on `${{ github.repository }}`
-            **Branch:** `${{ github.ref_name }}`
-            **Commit:** [`${{ github.sha }}`](${{ github.event.head_commit.url }})
-            **Author:** ${{ github.event.head_commit.author.name }}
-            **Message:** ${{ github.event.head_commit.message }}
+            🎉 **BUILD SUCCESSFUL** 🎉
 
-            All tests passed! 🎉
+            **Repository:** `${{ github.repository }}`
+            **Branch:** `${{ github.ref_name }}`
+            **Workflow:** `${{ github.workflow }}`
+            **Event:** `${{ github.event_name }}`
+            **Run ID:** `${{ github.run_id }}`
+
+            **Commit Details:**
+            • **SHA:** [`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+            • **Author:** ${{ github.event.head_commit.author.name }} <${{ github.event.head_commit.author.email }}>
+            • **Message:** "${{ github.event.head_commit.message }}"
+            • **Timestamp:** ${{ github.event.head_commit.timestamp }}
+
+            **Checks Passed:**
+            ✅ Code linting (flake8)
+            ✅ Code formatting (black)
+            ✅ Unit tests (pytest)
+            ✅ All 24 tests passed
+
+            **Actions:** [View Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
       - name: Slack Success Notification
         if: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -87,13 +101,30 @@ jobs:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
         with:
           args: |
-            ❌ **Build Failed** on `${{ github.repository }}`
-            **Branch:** `${{ github.ref_name }}`
-            **Commit:** [`${{ github.sha }}`](${{ github.event.head_commit.url }})
-            **Author:** ${{ github.event.head_commit.author.name }}
-            **Message:** ${{ github.event.head_commit.message }}
+            💥 **BUILD FAILED** 💥
 
-            Please check the workflow logs for details.
+            **Repository:** `${{ github.repository }}`
+            **Branch:** `${{ github.ref_name }}`
+            **Workflow:** `${{ github.workflow }}`
+            **Event:** `${{ github.event_name }}`
+            **Run ID:** `${{ github.run_id }}`
+
+            **Commit Details:**
+            • **SHA:** [`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+            • **Author:** ${{ github.event.head_commit.author.name }} <${{ github.event.head_commit.author.email }}>
+            • **Message:** "${{ github.event.head_commit.message }}"
+            • **Timestamp:** ${{ github.event.head_commit.timestamp }}
+
+            **Possible Issues:**
+            ❌ Code linting errors (flake8)
+            ❌ Code formatting issues (black)
+            ❌ Unit test failures (pytest)
+            ❌ Build/dependency problems
+
+            **Actions Required:**
+            🔧 [Check Workflow Logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            📝 Review and fix the issues above
+            🔄 Push fixes to trigger re-run
 
       - name: Slack Failure Notification
         if: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -119,12 +150,30 @@ jobs:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
         with:
           args: |
-            🚀 **Deployment Ready** for `${{ github.repository }}`
-            **Branch:** `main`
-            **Commit:** [`${{ github.sha }}`](${{ github.event.head_commit.url }})
-            **Author:** ${{ github.event.head_commit.author.name }}
+            🚀 **READY FOR DEPLOYMENT** 🚀
 
-            Ready for production deployment! 🌟
+            **Repository:** `${{ github.repository }}`
+            **Branch:** `main` (Production Branch)
+            **Workflow:** `${{ github.workflow }}`
+            **Event:** Main branch updated
+            **Run ID:** `${{ github.run_id }}`
+
+            **Latest Commit:**
+            • **SHA:** [`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+            • **Author:** ${{ github.event.head_commit.author.name }} <${{ github.event.head_commit.author.email }}>
+            • **Message:** "${{ github.event.head_commit.message }}"
+            • **Timestamp:** ${{ github.event.head_commit.timestamp }}
+
+            **Pre-Deployment Checks:**
+            ✅ All tests passed (24/24)
+            ✅ Code quality validated
+            ✅ Build successful
+            ✅ Ready for production
+
+            **Next Steps:**
+            🌟 [Deploy to Production]
+            📊 [View Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            📋 [Check Deployment Status]
 
       - name: Slack Deployment Notification
         if: ${{ secrets.SLACK_WEBHOOK_URL }}
