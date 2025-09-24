@@ -49,23 +49,27 @@ jobs:
 
     steps:
       - name: Discord Success Notification
-        if: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        continue-on-error: true
         run: |
-          curl -H "Content-Type: application/json" \
-               -d '{
-                 "embeds": [{
-                   "title": "🎉 BUILD SUCCESSFUL 🎉",
-                   "color": 65280,
-                   "fields": [
-                     {"name": "Repository", "value": "${{ github.repository }}", "inline": true},
-                     {"name": "Branch", "value": "${{ github.ref_name }}", "inline": true},
-                     {"name": "Commit", "value": "[${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})", "inline": false},
-                     {"name": "Author", "value": "${{ github.event.head_commit.author.name }}", "inline": true},
-                     {"name": "Checks Passed", "value": "✅ Linting\n✅ Formatting\n✅ Unit tests (24/24)", "inline": false}
-                   ]
-                 }]
-               }' \
-               ${{ secrets.DISCORD_WEBHOOK_URL }}
+          if [ -n "${{ secrets.DISCORD_WEBHOOK_URL }}" ]; then
+            curl -H "Content-Type: application/json" \
+                 -d '{
+                   "embeds": [{
+                     "title": "🎉 BUILD SUCCESSFUL 🎉",
+                     "color": 65280,
+                     "fields": [
+                       {"name": "Repository", "value": "${{ github.repository }}", "inline": true},
+                       {"name": "Branch", "value": "${{ github.ref_name }}", "inline": true},
+                       {"name": "Commit", "value": "[${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})", "inline": false},
+                       {"name": "Author", "value": "${{ github.event.head_commit.author.name }}", "inline": true},
+                       {"name": "Checks Passed", "value": "✅ Linting\n✅ Formatting\n✅ Unit tests (24/24)", "inline": false}
+                     ]
+                   }]
+                 }' \
+                 "${{ secrets.DISCORD_WEBHOOK_URL }}"
+          else
+            echo "Discord webhook not configured, skipping notification"
+          fi
 
       - name: Slack Success Notification
         uses: 8398a7/action-slack@v3
