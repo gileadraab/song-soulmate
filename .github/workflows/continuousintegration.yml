@@ -23,9 +23,8 @@ jobs:
           args: "--exclude=venv"
 
       - name: Black Code Formatter
-        uses: lgeiger/black-action@v1.0.1
-        with:
-          args: ". --exclude=venv"
+        run: |
+          black . --exclude=venv --check --diff
 
       - name: Run unit tests
         run: |

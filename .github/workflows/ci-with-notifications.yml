@@ -30,7 +30,7 @@ jobs:
 
       - name: Format code with black
         run: |
-          black . --exclude=venv --check
+          black . --exclude=venv --check --diff
 
       - name: Run unit tests with pytest
         run: |
