@@ -49,7 +49,7 @@ jobs:
 
     steps:
       - name: Discord Success Notification
-        if: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        if: ${{ secrets.DISCORD_WEBHOOK_URL != '' }}
         uses: Ilshidur/action-discord@master
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
@@ -78,7 +78,7 @@ jobs:
             **Actions:** [View Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
       - name: Slack Success Notification
-        if: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
         uses: 8398a7/action-slack@v3
         with:
           status: success
@@ -95,7 +95,7 @@ jobs:
 
     steps:
       - name: Discord Failure Notification
-        if: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        if: ${{ secrets.DISCORD_WEBHOOK_URL != '' }}
         uses: Ilshidur/action-discord@master
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
@@ -127,7 +127,7 @@ jobs:
             🔄 Push fixes to trigger re-run
 
       - name: Slack Failure Notification
-        if: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
         uses: 8398a7/action-slack@v3
         with:
           status: failure
@@ -144,7 +144,7 @@ jobs:
 
     steps:
       - name: Discord Deployment Notification
-        if: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        if: ${{ secrets.DISCORD_WEBHOOK_URL != '' }}
         uses: Ilshidur/action-discord@master
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
@@ -176,7 +176,7 @@ jobs:
             📋 [Check Deployment Status]
 
       - name: Slack Deployment Notification
-        if: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
         uses: 8398a7/action-slack@v3
         with:
           status: success
