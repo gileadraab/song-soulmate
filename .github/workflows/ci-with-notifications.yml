@@ -26,6 +26,7 @@ jobs:
 
       - name: Run linting with flake8
         run: |
+          pip install flake8
           flake8 --exclude=venv
 
       - name: Format code with black
@@ -88,35 +89,28 @@ jobs:
 
     steps:
       - name: Discord Failure Notification
-        uses: Ilshidur/action-discord@master
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        with:
-          args: |
-            💥 **BUILD FAILED** 💥
-
-            **Repository:** `${{ github.repository }}`
-            **Branch:** `${{ github.ref_name }}`
-            **Workflow:** `${{ github.workflow }}`
-            **Event:** `${{ github.event_name }}`
-            **Run ID:** `${{ github.run_id }}`
-
-            **Commit Details:**
-            • **SHA:** [`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
-            • **Author:** ${{ github.event.head_commit.author.name }} <${{ github.event.head_commit.author.email }}>
-            • **Message:** "${{ github.event.head_commit.message }}"
-            • **Timestamp:** ${{ github.event.head_commit.timestamp }}
-
-            **Possible Issues:**
-            ❌ Code linting errors (flake8)
-            ❌ Code formatting issues (black)
-            ❌ Unit test failures (pytest)
-            ❌ Build/dependency problems
-
-            **Actions Required:**
-            🔧 [Check Workflow Logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-            📝 Review and fix the issues above
-            🔄 Push fixes to trigger re-run
+        continue-on-error: true
+        run: |
+          if [ -n "${{ secrets.DISCORD_WEBHOOK_URL }}" ]; then
+            curl -H "Content-Type: application/json" \
+                 -d '{
+                   "embeds": [{
+                     "title": "💥 BUILD FAILED 💥",
+                     "color": 16711680,
+                     "fields": [
+                       {"name": "Repository", "value": "${{ github.repository }}", "inline": true},
+                       {"name": "Branch", "value": "${{ github.ref_name }}", "inline": true},
+                       {"name": "Commit", "value": "[${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})", "inline": false},
+                       {"name": "Author", "value": "${{ github.event.head_commit.author.name }}", "inline": true},
+                       {"name": "Possible Issues", "value": "❌ Code linting errors\n❌ Code formatting issues\n❌ Unit test failures\n❌ Build/dependency problems", "inline": false},
+                       {"name": "Action Required", "value": "[Check Workflow Logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})", "inline": false}
+                     ]
+                   }]
+                 }' \
+                 "${{ secrets.DISCORD_WEBHOOK_URL }}"
+          else
+            echo "Discord webhook not configured, skipping notification"
+          fi
 
       - name: Slack Failure Notification
         uses: 8398a7/action-slack@v3
@@ -135,35 +129,28 @@ jobs:
 
     steps:
       - name: Discord Deployment Notification
-        uses: Ilshidur/action-discord@master
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        with:
-          args: |
-            🚀 **READY FOR DEPLOYMENT** 🚀
-
-            **Repository:** `${{ github.repository }}`
-            **Branch:** `main` (Production Branch)
-            **Workflow:** `${{ github.workflow }}`
-            **Event:** Main branch updated
-            **Run ID:** `${{ github.run_id }}`
-
-            **Latest Commit:**
-            • **SHA:** [`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
-            • **Author:** ${{ github.event.head_commit.author.name }} <${{ github.event.head_commit.author.email }}>
-            • **Message:** "${{ github.event.head_commit.message }}"
-            • **Timestamp:** ${{ github.event.head_commit.timestamp }}
-
-            **Pre-Deployment Checks:**
-            ✅ All tests passed (24/24)
-            ✅ Code quality validated
-            ✅ Build successful
-            ✅ Ready for production
-
-            **Next Steps:**
-            🌟 [Deploy to Production]
-            📊 [View Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-            📋 [Check Deployment Status]
+        continue-on-error: true
+        run: |
+          if [ -n "${{ secrets.DISCORD_WEBHOOK_URL }}" ]; then
+            curl -H "Content-Type: application/json" \
+                 -d '{
+                   "embeds": [{
+                     "title": "🚀 READY FOR DEPLOYMENT 🚀",
+                     "color": 3447003,
+                     "fields": [
+                       {"name": "Repository", "value": "${{ github.repository }}", "inline": true},
+                       {"name": "Branch", "value": "main (Production)", "inline": true},
+                       {"name": "Commit", "value": "[${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})", "inline": false},
+                       {"name": "Author", "value": "${{ github.event.head_commit.author.name }}", "inline": true},
+                       {"name": "Pre-Deployment Checks", "value": "✅ All tests passed (24/24)\n✅ Code quality validated\n✅ Build successful\n✅ Ready for production", "inline": false},
+                       {"name": "Next Steps", "value": "[View Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})", "inline": false}
+                     ]
+                   }]
+                 }' \
+                 "${{ secrets.DISCORD_WEBHOOK_URL }}"
+          else
+            echo "Discord webhook not configured, skipping notification"
+          fi
 
       - name: Slack Deployment Notification
         uses: 8398a7/action-slack@v3
