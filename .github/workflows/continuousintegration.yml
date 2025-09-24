@@ -23,9 +23,11 @@ jobs:
           args: "--exclude=venv"
 
       - name: Black Code Formatter
-        run: |
-          black . --exclude=venv --check --diff
+        uses: psf/black@stable
+        with:
+          options: "--check --verbose --exclude=venv"
 
       - name: Run unit tests
         run: |
+          python -m pip install pytest pytest-flask
           pytest -v --tb=short
