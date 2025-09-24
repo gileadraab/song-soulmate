@@ -31,6 +31,7 @@ jobs:
 
       - name: Format code with black
         run: |
+          pip install black
           black . --exclude=venv --check --diff
 
       - name: Run unit tests with pytest
@@ -72,15 +73,6 @@ jobs:
             echo "Discord webhook not configured, skipping notification"
           fi
 
-      - name: Slack Success Notification
-        uses: 8398a7/action-slack@v3
-        with:
-          status: success
-          channel: '#dev'
-          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
-          fields: repo,message,commit,author,action,eventName,ref,workflow
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   notify-failure:
     needs: test
@@ -112,15 +104,6 @@ jobs:
             echo "Discord webhook not configured, skipping notification"
           fi
 
-      - name: Slack Failure Notification
-        uses: 8398a7/action-slack@v3
-        with:
-          status: failure
-          channel: '#dev'
-          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
-          fields: repo,message,commit,author,action,eventName,ref,workflow
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   deploy-notification:
     needs: test
@@ -152,15 +135,3 @@ jobs:
             echo "Discord webhook not configured, skipping notification"
           fi
 
-      - name: Slack Deployment Notification
-        uses: 8398a7/action-slack@v3
-        with:
-          status: success
-          channel: '#deployments'
-          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
-          text: |
-            🚀 Main branch updated! Ready for deployment.
-            Commit: ${{ github.sha }}
-            Author: ${{ github.event.head_commit.author.name }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
