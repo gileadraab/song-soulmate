@@ -49,32 +49,23 @@ jobs:
 
     steps:
       - name: Discord Success Notification
-        uses: Ilshidur/action-discord@master
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        with:
-          args: |
-            🎉 **BUILD SUCCESSFUL** 🎉
-
-            **Repository:** `${{ github.repository }}`
-            **Branch:** `${{ github.ref_name }}`
-            **Workflow:** `${{ github.workflow }}`
-            **Event:** `${{ github.event_name }}`
-            **Run ID:** `${{ github.run_id }}`
-
-            **Commit Details:**
-            • **SHA:** [`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
-            • **Author:** ${{ github.event.head_commit.author.name }} <${{ github.event.head_commit.author.email }}>
-            • **Message:** "${{ github.event.head_commit.message }}"
-            • **Timestamp:** ${{ github.event.head_commit.timestamp }}
-
-            **Checks Passed:**
-            ✅ Code linting (flake8)
-            ✅ Code formatting (black)
-            ✅ Unit tests (pytest)
-            ✅ All 24 tests passed
-
-            **Actions:** [View Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+        if: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          curl -H "Content-Type: application/json" \
+               -d '{
+                 "embeds": [{
+                   "title": "🎉 BUILD SUCCESSFUL 🎉",
+                   "color": 65280,
+                   "fields": [
+                     {"name": "Repository", "value": "${{ github.repository }}", "inline": true},
+                     {"name": "Branch", "value": "${{ github.ref_name }}", "inline": true},
+                     {"name": "Commit", "value": "[${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})", "inline": false},
+                     {"name": "Author", "value": "${{ github.event.head_commit.author.name }}", "inline": true},
+                     {"name": "Checks Passed", "value": "✅ Linting\n✅ Formatting\n✅ Unit tests (24/24)", "inline": false}
+                   ]
+                 }]
+               }' \
+               ${{ secrets.DISCORD_WEBHOOK_URL }}
 
       - name: Slack Success Notification
         uses: 8398a7/action-slack@v3

@@ -17,10 +17,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Python flake8 Lint
-        uses: py-actions/flake8@v2.3.0
-        with:
-          args: "--exclude=venv"
+      - name: Install and run flake8 lint
+        run: |
+          pip install flake8
+          flake8 --exclude=venv
 
       - name: Black Code Formatter
         uses: psf/black@stable
