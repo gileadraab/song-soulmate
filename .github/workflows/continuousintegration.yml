@@ -7,12 +7,26 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v5
 
-      - name: Python flake8 Lint
-        uses: py-actions/flake8@v2.3.0
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          args: "--exclude=venv"
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install and run flake8 lint
+        run: |
+          pip install flake8
+          flake8 --exclude=venv
 
       - name: Black Code Formatter
-        uses: lgeiger/black-action@v1.0.1
+        uses: psf/black@stable
         with:
-          args: ". --exclude=venv"
+          options: "--check --verbose --exclude=venv"
+
+      - name: Run unit tests
+        run: |
+          pytest -v --tb=short

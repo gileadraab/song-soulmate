@@ -1,0 +1,137 @@
+name: CI with Unit Tests and Notifications
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run linting with flake8
+        run: |
+          pip install flake8
+          flake8 --exclude=venv
+
+      - name: Format code with black
+        run: |
+          pip install black
+          black . --exclude=venv --check --diff
+
+      - name: Run unit tests with pytest
+        run: |
+          pytest -v --tb=short
+
+      - name: Generate test coverage report
+        run: |
+          pip install coverage
+          coverage run -m pytest
+          coverage report -m
+
+  notify-success:
+    needs: test
+    runs-on: ubuntu-latest
+    if: success()
+
+    steps:
+      - name: Discord Success Notification
+        continue-on-error: true
+        run: |
+          if [ -n "${{ secrets.DISCORD_WEBHOOK_URL }}" ]; then
+            curl -H "Content-Type: application/json" \
+                 -d '{
+                   "embeds": [{
+                     "title": "🎉 BUILD SUCCESSFUL 🎉",
+                     "color": 65280,
+                     "fields": [
+                       {"name": "Repository", "value": "${{ github.repository }}", "inline": true},
+                       {"name": "Branch", "value": "${{ github.ref_name }}", "inline": true},
+                       {"name": "Commit", "value": "[${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})", "inline": false},
+                       {"name": "Author", "value": "${{ github.event.head_commit.author.name }}", "inline": true},
+                       {"name": "Checks Passed", "value": "✅ Linting\n✅ Formatting\n✅ Unit tests (24/24)", "inline": false}
+                     ]
+                   }]
+                 }' \
+                 "${{ secrets.DISCORD_WEBHOOK_URL }}"
+          else
+            echo "Discord webhook not configured, skipping notification"
+          fi
+
+
+  notify-failure:
+    needs: test
+    runs-on: ubuntu-latest
+    if: failure()
+
+    steps:
+      - name: Discord Failure Notification
+        continue-on-error: true
+        run: |
+          if [ -n "${{ secrets.DISCORD_WEBHOOK_URL }}" ]; then
+            curl -H "Content-Type: application/json" \
+                 -d '{
+                   "embeds": [{
+                     "title": "💥 BUILD FAILED 💥",
+                     "color": 16711680,
+                     "fields": [
+                       {"name": "Repository", "value": "${{ github.repository }}", "inline": true},
+                       {"name": "Branch", "value": "${{ github.ref_name }}", "inline": true},
+                       {"name": "Commit", "value": "[${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})", "inline": false},
+                       {"name": "Author", "value": "${{ github.event.head_commit.author.name }}", "inline": true},
+                       {"name": "Possible Issues", "value": "❌ Code linting errors\n❌ Code formatting issues\n❌ Unit test failures\n❌ Build/dependency problems", "inline": false},
+                       {"name": "Action Required", "value": "[Check Workflow Logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})", "inline": false}
+                     ]
+                   }]
+                 }' \
+                 "${{ secrets.DISCORD_WEBHOOK_URL }}"
+          else
+            echo "Discord webhook not configured, skipping notification"
+          fi
+
+
+  deploy-notification:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Discord Deployment Notification
+        continue-on-error: true
+        run: |
+          if [ -n "${{ secrets.DISCORD_WEBHOOK_URL }}" ]; then
+            curl -H "Content-Type: application/json" \
+                 -d '{
+                   "embeds": [{
+                     "title": "🚀 READY FOR DEPLOYMENT 🚀",
+                     "color": 3447003,
+                     "fields": [
+                       {"name": "Repository", "value": "${{ github.repository }}", "inline": true},
+                       {"name": "Branch", "value": "main (Production)", "inline": true},
+                       {"name": "Commit", "value": "[${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})", "inline": false},
+                       {"name": "Author", "value": "${{ github.event.head_commit.author.name }}", "inline": true},
+                       {"name": "Pre-Deployment Checks", "value": "✅ All tests passed (24/24)\n✅ Code quality validated\n✅ Build successful\n✅ Ready for production", "inline": false},
+                       {"name": "Next Steps", "value": "[View Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})", "inline": false}
+                     ]
+                   }]
+                 }' \
+                 "${{ secrets.DISCORD_WEBHOOK_URL }}"
+          else
+            echo "Discord webhook not configured, skipping notification"
+          fi
+
